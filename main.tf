@@ -3,7 +3,7 @@ provider "aws" {
 }
 # group definition.
 
-# Creating group administrators
+# Creating group administrators.
 
 resource "aws_iam_group" "administrators" {
   name = "administrators2"
