@@ -1,7 +1,7 @@
 provider "aws" {
   region = "us-east-1"
 }
-# group definition
+# group definition.
 
 # Creating group administrators
 
