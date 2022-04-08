@@ -19,9 +19,12 @@ on:
     - README.md
 
 jobs:
-  verify:
-    name: Verify
+  Validation:
+    name: GoCloud validation, test and plan
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
@@ -29,54 +32,25 @@ jobs:
       uses: hashicorp/setup-terraform@v1
       with:
         terraform_version: 1.1.2
-    - name: Initialise with no backend
-      run: terraform init -backend=false
-    - name: Check formatting
-      run: terraform fmt -check -recursive
-    - name: Validate the configuration
-      run: terraform validate
-
-  caller-identity:
-    if: ${{ github.event_name == 'push' }}
-    name: Return the IAM user
-    permissions:
-      contents: read
-      id-token: write
-    runs-on: ubuntu-latest
-    steps:
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@master
       with:
         role-to-assume: arn:aws:iam::126919054911:role/GitHubRole
         aws-region: us-east-1
     - run: aws sts get-caller-identity
-  plan:
-    name: Plan
-    needs: [verify]
-    permissions:
-      contents: read
-      id-token: write
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v1
-      with:
-        terraform_version: 1.1.2
-    - name: Initialise with no backend
+    - name: Initialise Terraform
       run: terraform init
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@master
-      with:
-        role-to-assume: arn:aws:iam::126919054911:role/GitHubRole
-        aws-region: us-east-1
-    - name: terraform plan
+    - name: Check files code formatting
+      run: terraform fmt -check -recursive
+    - name: Validate the configuration
+      run: terraform validate
+    - name: Deployment Plan
       run: terraform plan
       
-  apply:
-    name: Apply
-    needs: [verify,plan]
+  GoCloud:
+    if: ${{ github.event_name == 'push' }}
+    name: GoCloud Apply changes
+    needs: [Validation]
     permissions:
       contents: read
       id-token: write
@@ -88,12 +62,13 @@ jobs:
       uses: hashicorp/setup-terraform@v1
       with:
         terraform_version: 1.1.2
-    - name: Initialise with no backend
-      run: terraform init -backend=false
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@master
       with:
         role-to-assume: arn:aws:iam::126919054911:role/GitHubRole
         aws-region: us-east-1
-    - name: terraform apply
+    - run: aws sts get-caller-identity
+    - name: Initialise Terraform
+      run: terraform init
+    - name: Apply changes to Cloud
       run: terraform apply --auto-approve
